@@ -2,59 +2,67 @@ from osgeo import ogr, gdal
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Location of shapefile
-vector_fn = '.\\Buildings\\Buildings.shp'
+def gen_raster_datasource(res_m, radius_m, centre_utm):
 
-# Define pixel_size and NoData value of new raster
-pixel_width = 1 # resolution in meters
-NoData_value = 255 # positive value only, changed to -1 later in code
+	pixel_width = res_m
 
-# TODO: See if we could read in only the extent needed
-# Open the data source and read in the extent
-source_ds = ogr.Open(vector_fn)
-source_layer = source_ds.GetLayer()
-source_srs = source_layer.GetSpatialRef()
-x_min, x_max, y_min, y_max = source_layer.GetExtent()
+	bbox = [centre_utm[0]-radius_m, centre_utm[0]+radius_m, centre_utm[1]-radius_m, centre_utm[1]+radius_m] 
 
-# Setting extent
-# Note: utm coordinate system
-radius = 500 # meters
-obs_point = [629908.16, 4833309.73] # Rogers Centre
-# bounding box [xmin, xmax, ymin, ymax]
-bbox = [obs_point[0]-radius, obs_point[0]+radius, obs_point[1]-radius, obs_point[1]+radius] 
+	cols = int((bbox[1] - bbox[0]) / pixel_width)
+	rows = int((bbox[3] - bbox[2]) / pixel_width)
+	print(f"Size of grid (cols, rows) = ({cols}, {rows})")
 
-# Create the destination data source
-cols = int((bbox[1] - bbox[0]) / pixel_width)
-rows = int((bbox[3] - bbox[2]) / pixel_width)
-print(f'Size of grid (cols, rows) = ({cols}, {rows})')
+	raster_ds = gdal.GetDriverByName('GTiff').Create('temp.tif', cols, rows, gdal.GDT_Byte)
 
-# Create Raster file
-target_ds = gdal.GetDriverByName('GTiff').Create('temp.tif', cols, rows, gdal.GDT_Byte)
+	# A geotransform consists in a set of 6 coefficients:
+	# GT(0) x-coordinate of the upper-left corner of the upper-left pixel.
+	# GT(1) w-e pixel resolution / pixel width.
+	# GT(2) row rotation (typically zero).
+	# GT(3) y-coordinate of the upper-left corner of the upper-left pixel.
+	# GT(4) column rotation (typically zero).
+	# GT(5) n-s pixel resolution / pixel height (negative value for a north-up image).
 
-# A geotransform consists in a set of 6 coefficients:
-# GT(0) x-coordinate of the upper-left corner of the upper-left pixel.
-# GT(1) w-e pixel resolution / pixel width.
-# GT(2) row rotation (typically zero).
-# GT(3) y-coordinate of the upper-left corner of the upper-left pixel.
-# GT(4) column rotation (typically zero).
-# GT(5) n-s pixel resolution / pixel height (negative value for a north-up image).
-target_ds.SetGeoTransform((bbox[0], pixel_width, 0, bbox[2], 0, pixel_width))
-band = target_ds.GetRasterBand(1)
-band.SetNoDataValue(NoData_value)
+	print(bbox[0], pixel_width, bbox[2])
+	raster_ds.SetGeoTransform((bbox[0], pixel_width, 0, bbox[2], 0, pixel_width))
 
-# Rasterize
-# Note: May need to change ATTRIBUTE depending on data set
-gdal.RasterizeLayer(target_ds, [1], source_layer, burn_values=[1], options = ['ATTRIBUTE=HEIGHT'])
+	return raster_ds
 
-# Read as array
-array = band.ReadAsArray()
-array = np.where(array == NoData_value, -1, array)
-np.save('buildings_array.npy', array)
-#print(array)
 
-# Plot
-plt.pcolormesh(array)
-plt.axis('scaled')
-plt.colorbar(label = 'Elevation (dm)')
-plt.savefig('buildings_array.png')
-plt.show()
+def ds2array(raster_ds):
+	no_data = 255
+	band = raster_ds.GetRasterBand(1)
+	band.SetNoDataValue(no_data)
+	array = band.ReadAsArray()
+	array = np.where(array == no_data, -1, array)
+
+	return array
+
+def import_shpfile_as_array(shp_fname, attr, centre_of_view_utm, radius_m=500, res_m=1):
+	shp_datasource = ogr.Open(shp_fname)
+	shp_layer = shp_datasource.GetLayer()
+
+	raster_datasource = gen_raster_datasource(res_m, radius_m, centre_of_view_utm)
+
+	gdal.RasterizeLayer(raster_datasource, [1], shp_layer, burn_values=[1], options = [f"ATTRIBUTE={attr}"])
+
+	array = ds2array(raster_datasource)
+
+	return array
+
+
+if __name__ == "__main__":
+
+	shp_fname = r'./Buildings.shp'
+	attr = "HEIGHT"
+	centre_of_view_utm = [629908.16, 4833309.73]
+
+	array = import_shpfile_as_array(shp_fname, attr, centre_of_view_utm)
+
+	np.save('buildings_array.npy', array)
+
+	# Plot
+	plt.pcolormesh(array)
+	plt.axis('scaled')
+	plt.colorbar(label = 'Elevation (dm)')
+	plt.savefig('buildings_array.png')
+	plt.show()
