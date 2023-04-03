@@ -67,7 +67,7 @@ def import_shpfile_as_array(shp_fname:str, attr:str, bbox:type(Bbox), nrows:int 
 
 def import_tif_as_array(tif_fname:str, bbox:type(Bbox), nrows:int=200, ncols:int=200) -> np.typing.ArrayLike:
 
-	src_raster_ds = gdal.Open('/home/jasperh/esc472/dtm_1m_utm17_e_12_83.tif', gdal.GA_ReadOnly)
+	src_raster_ds = gdal.Open(tif_fname, gdal.GA_ReadOnly)
 	dst_raster_ds = gen_raster_datasource(bbox, nrows, ncols)
 	gdal.Warp(dst_raster_ds, src_raster_ds)
 	
