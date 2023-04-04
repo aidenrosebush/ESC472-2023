@@ -1,10 +1,12 @@
 from osgeo import ogr, gdal
+gdal.UseExceptions()
 import numpy.typing as npt
 import numpy as np
+import typing
 
 class Bbox:
 
-	def __init__(self, centre:list, radius:int|float):
+	def __init__(self, centre:list, radius:typing.Union[int,float]):
 		self.centre = centre
 		self.xmax = centre[0] + radius
 		self.xmin = centre[0] - radius
@@ -53,7 +55,7 @@ def ds2array(raster_ds) -> npt.ArrayLike:
 	return array
 
 
-def import_shpfile_as_array(shp_fname:str, attr:str, bbox:type(Bbox), nrows:int = 200, ncols:int = 200) -> np.typing.ArrayLike:
+def import_shpfile_as_array(shp_fname:str, attr:str, bbox:type(Bbox), nrows:int = 200, ncols:int = 200) -> npt.ArrayLike:
 	shp_datasource = ogr.Open(shp_fname)
 	shp_layer = shp_datasource.GetLayer()
 
@@ -62,16 +64,24 @@ def import_shpfile_as_array(shp_fname:str, attr:str, bbox:type(Bbox), nrows:int 
 
 	array = ds2array(raster_datasource)
 
+	# close files
+	shp_datasource = None
+	raster_datasource = None
+
 	return array
 
 
-def import_tif_as_array(tif_fname:str, bbox:type(Bbox), nrows:int=200, ncols:int=200) -> np.typing.ArrayLike:
+def import_tif_as_array(tif_fname:str, bbox:type(Bbox), nrows:int=200, ncols:int=200) -> npt.ArrayLike:
 
 	src_raster_ds = gdal.Open(tif_fname, gdal.GA_ReadOnly)
 	dst_raster_ds = gen_raster_datasource(bbox, nrows, ncols)
 	gdal.Warp(dst_raster_ds, src_raster_ds)
 	
 	array = ds2array(dst_raster_ds)
+
+	# close files
+	src_raster_ds = None
+	dst_raster_ds = None
 
 	return array
 
@@ -109,7 +119,7 @@ if __name__ == "__main__":
 	bbox_wmerc.transform( utm2wmerc.transform )
 
 	building_array = import_shpfile_as_array("./toronto_3d_massing/3DMassingShapefile_2022_WGS84.shp", "AVG_HEIGHT", bbox_wmerc)
-	dtm_array = import_tif_as_array("./dtm_1m_utm17_e_12_83.tif",bbox_utm)
+	dtm_array = import_tif_as_array("dtm_1m_utm17_e_12_83.tif",bbox_utm)
 
 	total_elevation = building_array + dtm_array
 
