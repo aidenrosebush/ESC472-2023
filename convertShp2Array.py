@@ -6,14 +6,15 @@ import typing
 
 class Bbox:
 
-	def __init__(self, centre:list, radius:typing.Union[int,float]):
+	def __init__(self, centre:list, radius:typing.Union[int,float], crs:str):
 		self.centre = centre
 		self.xmax = centre[0] + radius
 		self.xmin = centre[0] - radius
 		self.ymax = centre[1] + radius
 		self.ymin = centre[1] - radius
+		self.crs = crs
 
-	def transform(self, transformer:callable):
+	def transform(self, transformer:callable, crs:str):
 		topleft = transformer( self.xmin, self.ymin )
 		bottomright = transformer( self.xmax, self.ymax )
 
@@ -22,6 +23,13 @@ class Bbox:
 		self.ymax = bottomright[1]
 		self.ymin = topleft[1]
 
+		self.crs = crs
+
+	def get_lenx(self) -> typing.Union[int,float]:
+		return (self.xmax - self.xmin)
+
+	def get_leny(self) -> typing.Union[int,float]:
+		return (self.ymax - self.ymin)
 
 def gen_raster_datasource(bbox:type(Bbox), nrows:int, ncols:int) -> gdal.Dataset:
 
@@ -85,13 +93,19 @@ def import_tif_as_array(tif_fname:str, bbox:type(Bbox), nrows:int=200, ncols:int
 
 	return array
 
-def plot_array(A:np.typing.ArrayLike):
+def plot_array(A:npt.ArrayLike):
 	plt.pcolormesh(A)
 	plt.axis('scaled')
 	plt.colorbar(label = 'Elevation (m)')
 
 	plt.show()
 
+# bbox must have same crs as point!
+# point must be within bbox!
+def get_idx(point:list, A:npt.ArrayLike, bbox:type(Bbox)):
+	return [ \
+	int( (point[0]-bbox.xmin)/(bbox.get_lenx())*A.shape[0] + 0.5 ),\
+	int( (point[1]-bbox.ymin)/(bbox.get_leny())*A.shape[1] + 0.5 ) ]
 
 if __name__ == "__main__":
 
