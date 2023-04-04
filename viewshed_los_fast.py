@@ -22,19 +22,23 @@ def getTestPoints(map, point, direction, r):
   return testPoints
 
 
-def plotTestPoints(map, testPoints):
+def plotColoredMap(coloredMap):
   fig, ax = plt.subplots()
+  ax.imshow(coloredMap, origin="lower")
+  ax.set_title('Test Points')
+  return coloredMap
+
+
+def getColoredMap(map, testPoints):
   coloredMap = np.zeros((len(map), len(map[0])))
   for testPoint in testPoints:
     coloredMap[testPoint[0], testPoint[1]] = 1
-  ax.imshow(coloredMap)
-  ax.set_title('Test Points')
   return coloredMap
 
 
 def plotMap(map):
   fig, ax = plt.subplots()
-  im = ax.imshow(map)
+  im = ax.imshow(map, origin='lower')
   ax.set_title('Elevation Map')
   fig.colorbar(im, ax=ax, label='Elevation')
 
@@ -48,8 +52,7 @@ def fitSightLine(map, point, testPoint, elevation):
 def getViewshed(map, point, direction, r, elevation):
   point = np.array(point)
   t = getTestPoints(map, point, direction, r)
-  plotMap(map)
-  coloredMap = plotTestPoints(map, t)
+  coloredMap = getColoredMap(map, t)
 
   line = []
 
@@ -81,7 +84,7 @@ def plotVisiblePoints(coloredMap, building_array = None):
   fig, ax = plt.subplots()
   if building_array is not None:
     ax.imshow(building_array > 0, cmap='gray')
-  ax.imshow(coloredMap, alpha=coloredMap)
+  ax.imshow(coloredMap, alpha=coloredMap/np.amax(coloredMap), origin="lower")
   ax.set_title('Visible Points')
   return
 

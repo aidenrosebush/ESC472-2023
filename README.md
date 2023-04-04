@@ -14,6 +14,6 @@
 
 # Run Example Script for Rogers' Centre
 
-Place data from <https://developers.google.com/maps/documentation/places/web-service/details> into same directory as script.
+Place data from <https://utoronto-my.sharepoint.com/:f:/r/personal/maxwell_fingold_mail_utoronto_ca/Documents/ESC472_Group1_2023/Data?csf=1&web=1&e=WxpMRD> into same directory as script.
 
     python3 ./rogers_centre.py

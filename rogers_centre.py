@@ -1,4 +1,5 @@
 from pyproj import Transformer
+from scipy.ndimage import gaussian_filter
 import copy
 import convertShp2Array as shp2array
 import viewshed_los_fast as viewshed
@@ -39,4 +40,6 @@ elevation = map[ point[0], point[1] ] + 10
 m = viewshed.getViewshed(map, point, direction, r, elevation)
 m = viewshed.detectBuildings(building_array, m)
 viewshed.plotVisiblePoints(m, building_array)
+m2 = gaussian_filter(m, sigma=2)
+viewshed.plotVisiblePoints(m2, building_array)
 plt.show()

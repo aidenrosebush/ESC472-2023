@@ -94,7 +94,7 @@ def import_tif_as_array(tif_fname:str, bbox:type(Bbox), nrows:int=200, ncols:int
 	return array
 
 def plot_array(A:npt.ArrayLike):
-	plt.pcolormesh(A)
+	plt.imshow(A, origin='lower')
 	plt.axis('scaled')
 	plt.colorbar(label = 'Elevation (m)')
 
@@ -127,10 +127,10 @@ if __name__ == "__main__":
 
 	centre_utm = wmerc2utm.transform(*centre_wmerc)
 	radius_utm = 250
-	bbox_utm = Bbox(centre_utm, radius_utm)
+	bbox_utm = Bbox(centre_utm, radius_utm, "EPSG:32617")
 
 	bbox_wmerc = copy.copy(bbox_utm)
-	bbox_wmerc.transform( utm2wmerc.transform )
+	bbox_wmerc.transform( utm2wmerc.transform, "EPSG:3857")
 
 	building_array = import_shpfile_as_array("./toronto_3d_massing/3DMassingShapefile_2022_WGS84.shp", "AVG_HEIGHT", bbox_wmerc)
 	dtm_array = import_tif_as_array("dtm_1m_utm17_e_12_83.tif",bbox_utm)
